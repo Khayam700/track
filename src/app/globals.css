@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* ── Base resets & dark-mode defaults ─────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #030712; /* gray-950 */
+  color: #f3f4f6;      /* gray-100 */
+}
+
+/* ── Selection colour ─────────────────────────────────────── */
+::selection {
+  background-color: rgba(139, 92, 246, 0.3); /* violet-500 / 30% */
+  color: #f3f4f6;
+}
+
+/* ── Scrollbar styling (Webkit) ──────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Smooth hover transitions on table rows ──────────────── */
+table tbody tr {
+  transition: background-color 0.15s ease;
+}
