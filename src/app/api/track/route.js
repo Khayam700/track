@@ -92,7 +92,9 @@ export async function GET(request) {
 
     // --- 5. Redirect based on mode ---
     if (redirectMode === "poll") {
-      return NextResponse.redirect(new URL(`/predict?logId=${logId}`, request.url));
+      const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:3000";
+      const proto = request.headers.get("x-forwarded-proto") || "http";
+      return NextResponse.redirect(`${proto}://${host}/predict?logId=${logId}`, 302);
     }
     return NextResponse.redirect(redirectUrl, 302);
   } catch (error) {
