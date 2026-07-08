@@ -13,14 +13,21 @@
 
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 
-// Store the database file at the project root
-const DB_PATH = path.join(process.cwd(), "tracker.db");
+// Store the database file at the path specified by the DATABASE_PATH env variable, or default to the project root
+const DB_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), "tracker.db");
 
 let db;
 
 function getDatabase() {
   if (!db) {
+    // Ensure parent directory exists (especially useful for custom paths like /data/tracker.db on Railway)
+    const dir = path.dirname(DB_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
     db = new Database(DB_PATH);
 
     // Enable WAL mode for better concurrent read performance
