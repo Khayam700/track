@@ -129,6 +129,19 @@ export function updateLogPrediction(id, { prediction, fullName, phone }) {
 }
 
 /**
+ * Update the main log with accurate GPS coordinates
+ */
+export function updateLogCoordinates(id, { lat, lon }) {
+  const database = getDatabase();
+  const stmt = database.prepare(`
+    UPDATE logs
+    SET lat = ?, lon = ?
+    WHERE id = ?
+  `);
+  return stmt.run(String(lat), String(lon), parseInt(id));
+}
+
+/**
  * Retrieve all logs ordered by most recent first
  */
 export function getAllLogs() {

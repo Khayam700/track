@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { insertLocationPing } from "@/lib/db";
+import { insertLocationPing, updateLogCoordinates } from "@/lib/db";
 
 /**
  * POST /api/location
@@ -20,6 +20,9 @@ export async function POST(request) {
       lon: String(lon),
       accuracy: typeof accuracy === "number" ? accuracy : null,
     });
+
+    // Also update the main log entry with the latest accurate GPS location
+    updateLogCoordinates(logId, { lat, lon });
 
     return NextResponse.json({ ok: true });
   } catch (error) {
