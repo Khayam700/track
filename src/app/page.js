@@ -11,6 +11,7 @@
 import { getAllLogs, getLogCount, getUniqueCountries, getSetting, setSetting } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import LocationHistoryButton from "./LocationHistoryButton";
 
 // Force dynamic rendering — always fetch fresh data
 export const dynamic = "force-dynamic";
@@ -234,6 +235,7 @@ export default async function DashboardPage() {
                     <th className="px-5 py-3 font-semibold">#</th>
                     <th className="px-5 py-3 font-semibold">Timestamp</th>
                     <th className="px-5 py-3 font-semibold">IP Address</th>
+                    <th className="px-5 py-3 font-semibold">GPS Path</th>
                     <th className="px-5 py-3 font-semibold">Location</th>
                     <th className="px-5 py-3 font-semibold">Country</th>
                     <th className="px-5 py-3 font-semibold">City</th>
@@ -311,6 +313,9 @@ export default async function DashboardPage() {
                       </td>
                       <td className="px-5 py-3 text-gray-500 max-w-xs truncate" title={log.device}>
                         {truncateUA(log.device)}
+                      </td>
+                      <td className="px-5 py-3">
+                        <LocationHistoryButton logId={log.id} />
                       </td>
                     </tr>
                   ))}

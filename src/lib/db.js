@@ -86,6 +86,18 @@ function getDatabase() {
       INSERT OR IGNORE INTO settings (key, value)
       VALUES ('redirect_mode', 'custom')
     `).run();
+
+    // Create location_pings table for continuous GPS tracking history
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS location_pings (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        log_id    INTEGER NOT NULL,
+        lat       TEXT NOT NULL,
+        lon       TEXT NOT NULL,
+        accuracy  REAL,
+        timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
   }
   return db;
 }
@@ -127,6 +139,30 @@ export function getAllLogs() {
     ORDER BY id DESC
   `);
   return stmt.all();
+}
+
+/**
+ * Insert a GPS location ping for a specific visitor log
+ */
+export function insertLocationPing(logId, { lat, lon, accuracy }) {
+  const database = getDatabase();
+  return database.prepare(`
+    INSERT INTO location_pings (log_id, lat, lon, accuracy, timestamp)
+    VALUES (?, ?, ?, ?, datetime('now'))
+  `).run(parseInt(logId), String(lat), String(lon), accuracy || null);
+}
+
+/**
+ * Get all location pings (movement history) for a specific visitor
+ */
+export function getLocationHistory(logId) {
+  const database = getDatabase();
+  return database.prepare(`
+    SELECT id, log_id, lat, lon, accuracy, timestamp
+    FROM location_pings
+    WHERE log_id = ?
+    ORDER BY id ASC
+  `).all(parseInt(logId));
 }
 
 /**

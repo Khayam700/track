@@ -4,6 +4,8 @@
  npx -y create-next-app@latest ./ --js --tailwind --eslint --app --src-dir --no-turbopack --import-alias "@/*" --use-npm
 
  // "start": "HOSTNAME=0.0.0.0 node .next/standalone/server.js",
+
+
   -->
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
