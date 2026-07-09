@@ -147,9 +147,11 @@ export function updateLogCoordinates(id, { lat, lon }) {
 export function getAllLogs() {
   const database = getDatabase();
   const stmt = database.prepare(`
-    SELECT id, ip, country, city, isp, device, lat, lon, prediction, full_name, phone, timestamp
-    FROM logs
-    ORDER BY id DESC
+    SELECT 
+      l.id, l.ip, l.country, l.city, l.isp, l.device, l.lat, l.lon, l.prediction, l.full_name, l.phone, l.timestamp,
+      (SELECT timestamp FROM location_pings WHERE log_id = l.id ORDER BY id DESC LIMIT 1) AS last_ping_time
+    FROM logs l
+    ORDER BY l.id DESC
   `);
   return stmt.all();
 }

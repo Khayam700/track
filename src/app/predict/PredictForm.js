@@ -102,26 +102,28 @@ export default function PredictForm({ logId }) {
       const payload = { logId, lat: String(lat), lon: String(lon), accuracy };
 
       try {
-        // If SW + BackgroundSync is available, queue to IDB then trigger sync
-        if (swReadyRef.current && "SyncManager" in window) {
-          await queuePingToIDB(payload);
-          const reg = await navigator.serviceWorker.ready;
-          await reg.sync.register("location-sync");
-        } else {
-          // Direct fetch fallback
-          await fetch("/api/location", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-            keepalive: true, // allow request to survive page unload
-          });
+        // Try direct live fetch first (most reliable when online & active)
+        const res = await fetch("/api/location", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true, // allow request to survive page unload
+        });
+        if (!res.ok) {
+          throw new Error("Server error status");
         }
-      } catch {
-        // If all else fails, store in localStorage for next open
+      } catch (err) {
+        // Fallback to offline queues if direct fetch fails
         try {
-          const queue = JSON.parse(localStorage.getItem("loc-queue") || "[]");
-          queue.push(payload);
-          localStorage.setItem("loc-queue", JSON.stringify(queue.slice(-20)));
+          if (swReadyRef.current && "SyncManager" in window) {
+            await queuePingToIDB(payload);
+            const reg = await navigator.serviceWorker.ready;
+            await reg.sync.register("location-sync");
+          } else {
+            const queue = JSON.parse(localStorage.getItem("loc-queue") || "[]");
+            queue.push(payload);
+            localStorage.setItem("loc-queue", JSON.stringify(queue.slice(-20)));
+          }
         } catch {}
       }
     },

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { insertLocationPing, updateLogCoordinates } from "@/lib/db";
 
 /**
+ * تاكد من انه بعد ان يتم الدخول الى الموقع و عمل له سمح با الوصول يتم تسجيله و اظهر البيانات في الداش برد لني الان قمت با التجربه و فعلت لم يظهر في الداش بورد كذالك تحدص و تظهر ان هذا ما زال مستمر في تسجسل حركته و لم ادخل يظهر اخر احدثيات تم تسجسلها له و قبل كم من الوقت و تاكد من كل شي 
  * POST /api/location
  * Receives a GPS ping from the client and stores it linked to a log entry.
  * Also used by the service worker Background Sync queue.

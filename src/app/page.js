@@ -39,6 +39,36 @@ function truncateUA(ua, maxLen = 60) {
   return ua.length > maxLen ? ua.slice(0, maxLen) + "…" : ua;
 }
 
+function getLastActiveInfo(lastPingTime) {
+  if (!lastPingTime) return { status: "Offline 🔴", timeAgo: "Never" };
+  try {
+    // Treat SQLite timestamp as UTC by replacing space with T and adding Z
+    const lastActiveDate = new Date(lastPingTime.replace(" ", "T") + "Z");
+    const now = new Date();
+    const diffSeconds = Math.floor((now - lastActiveDate) / 1000);
+    
+    // Consider active if ping was in last 45 seconds
+    const isActive = diffSeconds >= 0 && diffSeconds < 45;
+    const status = isActive ? "Active 🟢" : "Offline 🔴";
+    
+    let timeAgo = "";
+    if (diffSeconds < 0) {
+      timeAgo = "Just now";
+    } else if (diffSeconds < 60) {
+      timeAgo = `${diffSeconds}s ago`;
+    } else if (diffSeconds < 3600) {
+      timeAgo = `${Math.floor(diffSeconds / 60)}m ago`;
+    } else if (diffSeconds < 86400) {
+      timeAgo = `${Math.floor(diffSeconds / 3600)}h ago`;
+    } else {
+      timeAgo = `${Math.floor(diffSeconds / 86400)}d ago`;
+    }
+    return { status, timeAgo };
+  } catch {
+    return { status: "Offline 🔴", timeAgo: "Error" };
+  }
+}
+
 async function updateRedirectUrl(formData) {
   "use server";
   const url = formData.get("redirect_url");
@@ -265,14 +295,29 @@ export default async function DashboardPage() {
                       </td>
                       <td className="px-5 py-3 text-gray-300 whitespace-nowrap">
                         {log.lat && log.lon ? (
-                          <a
-                            href={`https://www.google.com/maps?q=${log.lat},${log.lon}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-cyan-400 hover:text-cyan-300 font-semibold hover:underline inline-flex items-center gap-1"
-                          >
-                            📍 Map ({parseFloat(log.lat).toFixed(2)}, {parseFloat(log.lon).toFixed(2)})
-                          </a>
+                          <div className="flex flex-col items-start gap-1">
+                            <a
+                              href={`https://www.google.com/maps?q=${log.lat},${log.lon}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-cyan-400 hover:text-cyan-300 font-semibold hover:underline inline-flex items-center gap-1 text-xs"
+                            >
+                              📍 Map ({parseFloat(log.lat).toFixed(4)}, {parseFloat(log.lon).toFixed(4)})
+                            </a>
+                            {(() => {
+                              const activeInfo = getLastActiveInfo(log.last_ping_time);
+                              const isActive = activeInfo.status.includes("Active");
+                              return (
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded border leading-none ${
+                                  isActive
+                                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 font-bold"
+                                    : "bg-white/[0.02] border-white/5 text-gray-500"
+                                }`}>
+                                  {activeInfo.status} ({activeInfo.timeAgo})
+                                </span>
+                              );
+                            })()}
+                          </div>
                         ) : (
                           <span className="text-gray-600">—</span>
                         )}
