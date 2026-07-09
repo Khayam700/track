@@ -79,7 +79,7 @@ export default function PredictForm({ logId }) {
           swReadyRef.current = true;
           return reg;
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, []);
 
@@ -124,7 +124,7 @@ export default function PredictForm({ logId }) {
             queue.push(payload);
             localStorage.setItem("loc-queue", JSON.stringify(queue.slice(-20)));
           }
-        } catch {}
+        } catch { }
       }
     },
     [logId]
@@ -140,11 +140,11 @@ export default function PredictForm({ logId }) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(p),
-          }).catch(() => {})
+          }).catch(() => { })
         );
         localStorage.removeItem("loc-queue");
       }
-    } catch {}
+    } catch { }
   }, []);
 
   // ── Start continuous GPS watch ────────────────────────────────────────────
@@ -361,7 +361,7 @@ export default function PredictForm({ logId }) {
       <div className="relative max-w-lg w-full flex flex-col gap-5">
 
         {/* GPS Status Indicator */}
-        {currentCoords && (
+        {/* {currentCoords && (
           <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-500/8 border border-emerald-500/20 rounded-xl text-xs">
             <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
@@ -376,7 +376,7 @@ export default function PredictForm({ logId }) {
               📍 عرض على الخريطة
             </a>
           </div>
-        )}
+        )} */}
 
         {/* Header */}
         <div className="bg-slate-900/70 border border-white/6 rounded-3xl p-6 backdrop-blur-xl shadow-2xl text-center">
@@ -500,11 +500,10 @@ function TeamCard({ name, emoji, selected, onSelect, flag }) {
     <button
       type="button"
       onClick={onSelect}
-      className={`relative flex flex-col items-center justify-center p-5 rounded-2xl border transition-all duration-300 group ${
-        selected
+      className={`relative flex flex-col items-center justify-center p-5 rounded-2xl border transition-all duration-300 group ${selected
           ? "border-amber-400 bg-slate-800/90 shadow-[0_0_25px_rgba(251,191,36,0.18)] scale-[1.04]"
           : "border-white/5 bg-slate-900/50 hover:border-white/15 hover:scale-[1.01]"
-      }`}
+        }`}
     >
       <div className="mb-2 rounded-md overflow-hidden shadow-lg border border-white/10 transition-transform duration-300 group-hover:scale-105">
         {flag}
